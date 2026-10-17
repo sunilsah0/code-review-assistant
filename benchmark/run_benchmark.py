@@ -31,12 +31,13 @@ def load_cases() -> list[dict]:
     return cases
 
 
-def score() -> dict:
+
+def score(use_ai: bool = False) -> dict:
     tp = fp = fn = 0
     times: list[float] = []
     per_case, false_positives, missed = [], [], []
     for case in load_cases():
-        result = review_diff(case["diff"])
+        result = review_diff(case["diff"], use_ai=use_ai)
         times.append(result.elapsed_ms)
         expected = {(e["file"], e["line"]) for e in case["expected"]}
         found = {(f.file, f.line) for f in result.findings if f.source != "heuristic"}
@@ -53,7 +54,7 @@ def score() -> dict:
     recall = tp / (tp + fn) if tp + fn else 1.0
     ordered = sorted(times)
     return {
-        "mode": "static-only",
+        "mode": "static+ai" if use_ai else "static-only",
         "cases": len(per_case), "true_positives": tp, "false_positives": fp, "missed": fn,
         "precision": round(precision, 3), "recall": round(recall, 3),
         "avg_ms": round(statistics.mean(times), 2),
@@ -65,10 +66,11 @@ def score() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--ai", action="store_true")
     parser.add_argument("--min-precision", type=float, default=0.0)
     parser.add_argument("--min-recall", type=float, default=0.0)
     args = parser.parse_args()
-    report = score()
+    report = score(args.ai)
     (HERE / "results.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     for key, value in report.items():
         if key != "per_case":

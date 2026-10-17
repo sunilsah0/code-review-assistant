@@ -1,4 +1,4 @@
-"""Command line use:  python -m app.cli changes.diff [--json]"""
+"""Command line use:  python -m app.cli changes.diff [--ai] [--json]"""
 from __future__ import annotations
 
 import argparse
@@ -20,10 +20,11 @@ def read_text(path: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Review a unified diff (advisory only).")
     parser.add_argument("diff_file", help="path to a .diff/.patch file, or - for stdin")
+    parser.add_argument("--ai", action="store_true", help="also ask a local AI model (Ollama)")
     parser.add_argument("--json", action="store_true", help="print JSON instead of Markdown")
     args = parser.parse_args()
     text = sys.stdin.read() if args.diff_file == "-" else read_text(args.diff_file)
-    result = review_diff(text)
+    result = review_diff(text, use_ai=args.ai)
     print(result.model_dump_json(indent=2) if args.json else render_markdown(result))
 
 
